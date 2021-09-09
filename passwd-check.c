@@ -2,9 +2,19 @@
 #include <stdbool.h>
 #include <limits.h>
 #include <stdlib.h>
+#include <errno.h>
+
+// Define password hard limits
+#define MAX_PASSWORD_LENGTH 102 // 100 chars + 1 newline + 1 terminator
+#define MAX_PASSWORD_COUNT  43 // 42 Passwords + 1 for EOF
 
 // Define unused param macro to achieve same arguments across all rules
 #define UNUSED(x) (void)(x)
+
+enum {
+    PASSWORD_TOO_LONG,
+    PASSWORD_LIST_TOO_LONG
+};
 
 // Check rule 1.
 bool meets_rule_one(char *password, int x) {
@@ -196,7 +206,9 @@ int get_password_length(char *password) {
     return -1;
 }
 
-// Prepare used chars array for counting
+/* Prepare used chars array for counting
+ * It modifies used_chars array
+ */
 void populate_used_chars(char *password, bool *used_chars) {
     // Iterate through all characters
     for (int i = 0; password[i] != '\0'; i++) {
@@ -224,18 +236,21 @@ int get_different_char_count(bool *used_chars) {
 }
 
 // Convert string to int with error handling
-int string_to_int(char *string) {
-    char * pEnd;
+bool string_to_int(char *string, int *num) {
+    char *pEnd;
     int number = strtol(string, &pEnd, 10);
 
     /* Check if string starts with number (sign)
      * Also check if it ends with number
      */
     if (pEnd == string || *pEnd != '\0') {
-        printf("Parametr neni cislo!\n");
+        return false;
     }
 
-    return number;
+    // Return result by reference
+    *num = number;
+
+    return true;
 }
 
 // String compare function
@@ -260,6 +275,80 @@ bool str_cmp(char *s1, char *s2) {
     }
 }
 
+// Read all passwords from STDIN and put in into supplied array
+bool read_passwords(char passwords[][MAX_PASSWORD_LENGTH], int* password_count) {
+    for (int i = 0; i < MAX_PASSWORD_COUNT; i++) {
+        // Get one line from stdin
+        char* ret = fgets(passwords[i], MAX_PASSWORD_LENGTH, stdin);
+
+        // If we hit EOF then end reading
+        if (ret == NULL) {
+            return true;
+        }
+
+        // If there is no newline it means the password is too long
+        if (!is_newline_present(passwords[i])) {
+            fprintf(stderr, "Heslo cislo %d je prilis dlouhe!\n", i + 1);
+            return false;
+        }
+
+        // Update password count
+        (*password_count)++;
+    }
+
+    // If we didn't already hit EOF it means the password list is too long
+    fprintf(stderr, "Prilis dlouhy seznam hesel!\n");
+    return false;
+}
+
+// Function for printing final stats
+void print_stats(char passwords[][MAX_PASSWORD_LENGTH], int password_count) {
+    // Variables for tracking totals
+    int min_password_length = INT_MAX;
+    int total_length = 0;
+    bool used_chars[256] = { false };
+
+    // Iterate through all passwords
+    for (int i = 0; i < password_count; i++) {
+        // For average length
+        int password_length = get_password_length(passwords[i]);
+        total_length += password_length;
+
+        // Update min password length
+        if (password_length < min_password_length) {
+            min_password_length = password_length;
+        }
+
+        // For counting unique chars
+        populate_used_chars(passwords[i], used_chars);
+    }
+
+    // Fix stats when there are 0 passwords
+    if (password_count == 0) {
+        // Set password count to 1 to fix division by 0
+        password_count = 1;
+        // Set min password length to 0 from INT_MAX
+        min_password_length = 0;
+    }
+
+    // Finally print everything
+    printf("Statistika:\n");
+    printf("Ruznych znaku: %d\n", get_different_char_count(used_chars));
+    printf("Minimalni delka: %d\n", min_password_length);
+    printf("Prumerna delka: %.2f\n", (double) total_length / (double) password_count);
+}
+
+// Function to print valid passwords
+void print_valid_passwords(char passwords[][MAX_PASSWORD_LENGTH], int password_count, int level, int x) {
+    for (int i = 0; i < password_count; i++) {
+        int achieved_level = get_achieved_level(passwords[i], x);
+
+        if (achieved_level >= level) {
+            printf("%s", passwords[i]);
+        }
+    }
+}
+
 // Entry
 int main(int argc, char *argv[]) {
     if (argc < 3) {
@@ -267,52 +356,45 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    int level = string_to_int(argv[1]);
-    int x = string_to_int(argv[2]);
+    // Convert LEVEL argument and error handle
+    int level;
+    if (!string_to_int(argv[1], &level)) {
+        fprintf(stderr, "Argument LEVEL neni cele cislo!\n");
+        return EINVAL;
+    }
+    if (level < 1 || level > 4) {
+        fprintf(stderr, "Argument LEVEL musi byt cele cislo mezi 1 a 4!\n");
+        return ERANGE;
+    }
 
-    int min_password_length = INT_MAX;
+    // Convert PARAM argument and error handle
+    int x;
+    if (!string_to_int(argv[2], &x)) {
+        fprintf(stderr, "Argument PARAM neni cele cislo!\n");
+        return EINVAL;
+    }
+    if (x < 0) {
+        fprintf(stderr, "Argument PARAM musi byt nezaporne cele cislo!\n");
+        return ERANGE;
+    }
+
+
+    // Create buffer for all passwords
+    char passwords[MAX_PASSWORD_COUNT][MAX_PASSWORD_LENGTH];
     int password_count = 0;
-    int total_length = 0;
-    bool used_chars[256] = { false };
 
-    while (true) {
-        /* Create buffer for password line
-         * 100 chars for password + 1 char newline + 1 char terminator
-         */
-        char password[102];
-        char* ret = fgets(password, 102, stdin);
-
-        if (ret == NULL) {
-            break;
-        }
-
-        if (!is_newline_present(password)) {
-            printf("Heslo je prilis dlouhe!\n");
-            return 0;
-        }
-
-        int password_length = get_password_length(password);
-        total_length += password_length;
-        if (password_length < min_password_length) {
-            min_password_length = password_length;
-        }
-        password_count++;
-        populate_used_chars(password, used_chars);
-
-        int achieved_level = get_achieved_level(password, x);
-
-        if (achieved_level >= level) {
-            printf("%s", password);
-        }
+    // Read passwords from STDIN
+    if (!read_passwords(passwords, &password_count)) {
+        return EXIT_FAILURE;
     }
 
+    // Finally print all valid passwords
+    print_valid_passwords(passwords, password_count, level, x);
+
+    // Print stats if argument was supplied
     if (argc >= 4 && str_cmp(argv[3], "--stats")) {
-        printf("Statistika:\n");
-        printf("Ruznych znaku: %d\n", get_different_char_count(used_chars));
-        printf("Minimalni delka: %d\n", min_password_length);
-        printf("Prumerna delka: %.2f\n", (double) total_length / (double) password_count);
+        print_stats(passwords, password_count);
     }
 
-    return 0;
-
+    return EXIT_SUCCESS;
 }

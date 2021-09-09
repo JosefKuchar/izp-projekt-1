@@ -2,7 +2,6 @@
 #include <stdbool.h>
 #include <limits.h>
 #include <stdlib.h>
-#include <errno.h>
 
 // Define password hard limits
 #define MAX_PASSWORD_LENGTH 102 // 100 chars + 1 newline + 1 terminator
@@ -10,11 +9,6 @@
 
 // Define unused param macro to achieve same arguments across all rules
 #define UNUSED(x) (void)(x)
-
-enum {
-    PASSWORD_TOO_LONG,
-    PASSWORD_LIST_TOO_LONG
-};
 
 // Check rule 1.
 bool meets_rule_one(char *password, int x) {
@@ -159,23 +153,23 @@ bool meets_rule_four(char *password, int x) {
 }
 
 // Get achieved level of password (0 - 4)
-int get_achieved_level(char* password, int x) {
+int meets_security_level(char* password, int x, int level) {
     // Create array of all rules
     typedef bool (*f)(char*, int);
     f rules[4] = {meets_rule_one, meets_rule_two, meets_rule_three, meets_rule_four};
 
     // Iterate through all rules
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < level; i++) {
         bool is_met = rules[i](password, x);
 
-        // If rule isn't met return adequate level of security
+        // If rule isn't met the password doesn't meet security level
         if (!is_met) {
-            return i;
+            return false;
         }
     }
 
     // If all rules were met it means we have achieved highest level of security
-    return 4;
+    return true;
 }
 
 // Find if newline is present in string to detect overflow
@@ -340,10 +334,9 @@ void print_stats(char passwords[][MAX_PASSWORD_LENGTH], int password_count) {
 
 // Function to print valid passwords
 void print_valid_passwords(char passwords[][MAX_PASSWORD_LENGTH], int password_count, int level, int x) {
+    // Iterate through all passwords
     for (int i = 0; i < password_count; i++) {
-        int achieved_level = get_achieved_level(passwords[i], x);
-
-        if (achieved_level >= level) {
+        if (meets_security_level(passwords[i], x, level)) {
             printf("%s", passwords[i]);
         }
     }
@@ -352,30 +345,30 @@ void print_valid_passwords(char passwords[][MAX_PASSWORD_LENGTH], int password_c
 // Entry
 int main(int argc, char *argv[]) {
     if (argc < 3) {
-        printf("Nedostatecny pocet argumetu!\n");
-        return 0;
+        fprintf(stderr, "Nedostatecny pocet argumetu!\n");
+        return EXIT_FAILURE;
     }
 
     // Convert LEVEL argument and error handle
     int level;
     if (!string_to_int(argv[1], &level)) {
         fprintf(stderr, "Argument LEVEL neni cele cislo!\n");
-        return EINVAL;
+        return EXIT_FAILURE;
     }
     if (level < 1 || level > 4) {
         fprintf(stderr, "Argument LEVEL musi byt cele cislo mezi 1 a 4!\n");
-        return ERANGE;
+        return EXIT_FAILURE;
     }
 
     // Convert PARAM argument and error handle
     int x;
     if (!string_to_int(argv[2], &x)) {
         fprintf(stderr, "Argument PARAM neni cele cislo!\n");
-        return EINVAL;
+        return EXIT_FAILURE;
     }
     if (x < 0) {
         fprintf(stderr, "Argument PARAM musi byt nezaporne cele cislo!\n");
-        return ERANGE;
+        return EXIT_FAILURE;
     }
 
 

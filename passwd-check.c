@@ -153,7 +153,7 @@ bool meets_rule_four(char *password, int x) {
 }
 
 // Check if password meets required security level
-int meets_security_level(char* password, int x, int level) {
+int meets_security_level(char *password, int x, int level) {
     // Create array of all rules
     typedef bool (*f)(char*, int);
     f rules[] = {
@@ -178,7 +178,7 @@ int meets_security_level(char* password, int x, int level) {
 }
 
 // Find if newline is present in string to detect overflow
-bool is_newline_present(char* string) {
+bool is_newline_present(char *string) {
     // Iterate through all characters
     for (int i = 0; string[i] != '\0'; i++) {
         // If we find newline we don't have to search anymore
@@ -284,7 +284,7 @@ bool str_cmp(char *s1, char *s2) {
 
 // Read all passwords from STDIN and put in into supplied array
 bool read_passwords(char passwords[][MAX_PASSWORD_LENGTH],
-                    int* password_count) {
+                    int *password_count) {
     for (int i = 0; i < MAX_PASSWORD_COUNT; i++) {
         // Get one line from stdin
         char* ret = fgets(passwords[i], MAX_PASSWORD_LENGTH, stdin);

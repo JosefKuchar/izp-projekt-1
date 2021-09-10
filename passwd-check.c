@@ -152,11 +152,16 @@ bool meets_rule_four(char *password, int x) {
     return true;
 }
 
-// Get achieved level of password (0 - 4)
+// Check if password meets required security level
 int meets_security_level(char* password, int x, int level) {
     // Create array of all rules
     typedef bool (*f)(char*, int);
-    f rules[4] = {meets_rule_one, meets_rule_two, meets_rule_three, meets_rule_four};
+    f rules[] = {
+        meets_rule_one,
+        meets_rule_two,
+        meets_rule_three,
+        meets_rule_four
+    };
 
     // Iterate through all rules
     for (int i = 0; i < level; i++) {
@@ -168,7 +173,7 @@ int meets_security_level(char* password, int x, int level) {
         }
     }
 
-    // If all rules were met it means we have achieved highest level of security
+    // If all rules were met it means we have met required security level
     return true;
 }
 
@@ -232,13 +237,21 @@ int get_different_char_count(bool *used_chars) {
 // Convert string to int with error handling
 bool string_to_int(char *string, int *num) {
     char *pEnd;
-    int number = strtol(string, &pEnd, 10);
+    long number = strtol(string, &pEnd, 10);
 
     /* Check if string starts with number (sign)
      * Also check if it ends with number
      */
     if (pEnd == string || *pEnd != '\0') {
         return false;
+    }
+
+    // Safely clamp long to int
+    if (number > (long) INT_MAX) {
+        number = INT_MAX;
+    }
+    else if (number < (long) INT_MIN) {
+        number = INT_MIN;
     }
 
     // Return result by reference
@@ -270,7 +283,8 @@ bool str_cmp(char *s1, char *s2) {
 }
 
 // Read all passwords from STDIN and put in into supplied array
-bool read_passwords(char passwords[][MAX_PASSWORD_LENGTH], int* password_count) {
+bool read_passwords(char passwords[][MAX_PASSWORD_LENGTH],
+                    int* password_count) {
     for (int i = 0; i < MAX_PASSWORD_COUNT; i++) {
         // Get one line from stdin
         char* ret = fgets(passwords[i], MAX_PASSWORD_LENGTH, stdin);
@@ -300,7 +314,7 @@ void print_stats(char passwords[][MAX_PASSWORD_LENGTH], int password_count) {
     // Variables for tracking totals
     int min_password_length = INT_MAX;
     int total_length = 0;
-    bool used_chars[256] = { false };
+    bool used_chars[256] = { false }; // 256 for all ASCII codes
 
     // Iterate through all passwords
     for (int i = 0; i < password_count; i++) {
@@ -325,15 +339,22 @@ void print_stats(char passwords[][MAX_PASSWORD_LENGTH], int password_count) {
         min_password_length = 0;
     }
 
+    // Calculate other final stats
+    int unique_chars = get_different_char_count(used_chars);
+    double average_length = (double) total_length / (double) password_count;
+
     // Finally print everything
     printf("Statistika:\n");
-    printf("Ruznych znaku: %d\n", get_different_char_count(used_chars));
+    printf("Ruznych znaku: %d\n", unique_chars);
     printf("Minimalni delka: %d\n", min_password_length);
-    printf("Prumerna delka: %.2f\n", (double) total_length / (double) password_count);
+    printf("Prumerna delka: %.2f\n", average_length);
 }
 
 // Function to print valid passwords
-void print_valid_passwords(char passwords[][MAX_PASSWORD_LENGTH], int password_count, int level, int x) {
+void print_valid_passwords(char passwords[][MAX_PASSWORD_LENGTH],
+                           int password_count,
+                           int level,
+                           int x) {
     // Iterate through all passwords
     for (int i = 0; i < password_count; i++) {
         if (meets_security_level(passwords[i], x, level)) {
@@ -342,8 +363,106 @@ void print_valid_passwords(char passwords[][MAX_PASSWORD_LENGTH], int password_c
     }
 }
 
+struct argument {
+    char *key; // Argument key, for example "-l"
+    bool has_value; // Flag that states if argument has value
+    int value; // Resulting argument value
+    int min_val; // Min argument value (including)
+    int max_val; // Max argument value (including)
+    char *error_msg; // Error message when argument is invalid
+};
+
+// Function to parse arguments from command line
+// TODO combine bonus with standard solution
+bool parse_arguments(int argc, char *argv[], struct argument arguments[]) {
+    // Iterate through all supplied arguments except the program name
+    for (int i = 1; i < argc; i++) {
+        bool key_found = false;
+
+        // Iterate through all defined arguments
+        for (int j = 0; j < 3; j++) {
+            struct argument *a = &arguments[j];
+            if (str_cmp(a->key, argv[i])) {
+                // If argument has value then parse it
+                if (a->has_value) {
+                    // Check if value is in bounds (exists)
+                    if (i + 1 < argc) {
+                        // Check and parse string to int
+                        if (!string_to_int(argv[i + 1], &a->value) ||
+                                a->value < a->min_val || // Check lower bounds
+                                a->value > a->max_val) { // Check upper bounds
+                            fprintf(stderr, "%s", a->error_msg);
+                            return false;
+                        }
+                        // Skip to next argument key
+                        i++;
+                    } else {
+                        fprintf(stderr, "%s", a->error_msg);
+                        return false;
+                    }
+                /* If argument doesn't have value just set the value to 1
+                 * to indicate that argument has been used
+                 */
+                } else {
+                    a->value = 1;
+                }
+
+                // Because we already found one key we can skip
+                key_found = true;
+                break;
+            }
+        }
+
+        // If we didn't find the key it means the argument is invalid
+        if (!key_found) {
+            fprintf(stderr, "Neexistující argument: %s\n", argv[i]);
+            return false;
+        }
+    }
+
+    // If everything went well we idicate it
+    return true;
+}
+
 // Entry
 int main(int argc, char *argv[]) {
+    // Define all arguments
+    struct argument arguments[] = {
+        // LEVEL argument
+        {
+            "-l", // Key
+            true, // Has value
+            1, // Default value
+            1, // Min value
+            4, // Max value
+            "Argument LEVEL musi byt cele cislo mezi 1 a 4!\n" }, // Error msg
+        // PARAM argument
+        {
+            "-p", // Key
+            true, // Has value
+            1, // Default value
+            0, // Min value
+            INT_MAX, // Max value
+            "Argument PARAM musi byt nezaporne cele cislo!\n" }, // Error msg
+        // Stats argument
+        {
+            "--stats", // Key
+            false, // Has value
+            0, // Default value
+            0, // Min value
+            0, // Max value
+            "" // Error msg
+        }
+    };
+
+    // Parse arguments and error check
+    if (!parse_arguments(argc, argv, arguments)) {
+        return EXIT_FAILURE;
+    }
+
+    /*
+    printf("%d", arguments[2].value);
+
     if (argc < 3) {
         fprintf(stderr, "Nedostatecny pocet argumetu!\n");
         return EXIT_FAILURE;
@@ -351,26 +470,21 @@ int main(int argc, char *argv[]) {
 
     // Convert LEVEL argument and error handle
     int level;
-    if (!string_to_int(argv[1], &level)) {
-        fprintf(stderr, "Argument LEVEL neni cele cislo!\n");
-        return EXIT_FAILURE;
-    }
-    if (level < 1 || level > 4) {
+    if (!string_to_int(argv[1], &level) || level < 1 || level > 4) {
         fprintf(stderr, "Argument LEVEL musi byt cele cislo mezi 1 a 4!\n");
         return EXIT_FAILURE;
     }
 
     // Convert PARAM argument and error handle
     int x;
-    if (!string_to_int(argv[2], &x)) {
-        fprintf(stderr, "Argument PARAM neni cele cislo!\n");
-        return EXIT_FAILURE;
-    }
-    if (x < 0) {
+    if (!string_to_int(argv[2], &x) || x < 0) {
         fprintf(stderr, "Argument PARAM musi byt nezaporne cele cislo!\n");
         return EXIT_FAILURE;
-    }
+    }*/
 
+    // Get parsed values from arguments
+    int level = arguments[0].value;
+    int x = arguments[1].value;
 
     // Create buffer for all passwords
     char passwords[MAX_PASSWORD_COUNT][MAX_PASSWORD_LENGTH];
@@ -384,8 +498,8 @@ int main(int argc, char *argv[]) {
     // Finally print all valid passwords
     print_valid_passwords(passwords, password_count, level, x);
 
-    // Print stats if argument was supplied
-    if (argc >= 4 && str_cmp(argv[3], "--stats")) {
+    // Print stats if relevant argument was supplied
+    if (arguments[2].value) {
         print_stats(passwords, password_count);
     }
 

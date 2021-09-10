@@ -460,28 +460,6 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    /*
-    printf("%d", arguments[2].value);
-
-    if (argc < 3) {
-        fprintf(stderr, "Nedostatecny pocet argumetu!\n");
-        return EXIT_FAILURE;
-    }
-
-    // Convert LEVEL argument and error handle
-    int level;
-    if (!string_to_int(argv[1], &level) || level < 1 || level > 4) {
-        fprintf(stderr, "Argument LEVEL musi byt cele cislo mezi 1 a 4!\n");
-        return EXIT_FAILURE;
-    }
-
-    // Convert PARAM argument and error handle
-    int x;
-    if (!string_to_int(argv[2], &x) || x < 0) {
-        fprintf(stderr, "Argument PARAM musi byt nezaporne cele cislo!\n");
-        return EXIT_FAILURE;
-    }*/
-
     // Get parsed values from arguments
     int level = arguments[0].value;
     int x = arguments[1].value;

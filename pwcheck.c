@@ -361,8 +361,40 @@ void print_stats(struct stats *stats) {
     printf("Prumerna delka: %.1f\n", average_length);
 }
 
+// Parser for original assignment
+bool parse_arguments_classic(int argc, char *argv[], struct argument args[]) {
+    // Check number of arguments
+    if (argc < 3 && argc > 4) {
+        fprintf(stderr, "Neplatny pocet argumentu!\n");
+        return false;
+    }
+
+    for (int i = 1; i < argc; i++) {
+        struct argument *a = &args[i - 1];
+
+        // Level and param arguments
+        if (a->has_value) {
+            if (!string_to_int(argv[i], &a->value) ||
+                    a->value < a->min_val || // Check lower bounds
+                    a->value > a->max_val) { // Check upper bounds
+                fprintf(stderr, "%s", a->error_msg);
+                return false;
+            }
+        // Stats argument
+        } else {
+            if (str_cmp(a->key, argv[i])) {
+                a->value = 1;
+            } else {
+                fprintf(stderr, "Neplatny argument %s\n", argv[i]);
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
 // Function to parse arguments from command line
-// TODO combine bonus with standard solution
 bool parse_arguments(int argc, char *argv[], struct argument arguments[]) {
     // Iterate through all supplied arguments except the program name
     for (int i = 1; i < argc; i++) {
@@ -402,14 +434,19 @@ bool parse_arguments(int argc, char *argv[], struct argument arguments[]) {
             }
         }
 
-        // If we didn't find the key it means the argument is invalid
         if (!key_found) {
-            fprintf(stderr, "Neexistující argument: %s\n", argv[i]);
-            return false;
+            /* If we didn't find the key and it is the first argument
+             * then fallback to original argument parser
+             */
+            if (i == 1) {
+                return parse_arguments_classic(argc, argv, arguments);
+            } else {
+                fprintf(stderr, "Neplatny argument %s\n", argv[i]);
+                return false;
+            }
         }
     }
 
-    // If everything went well we idicate it
     return true;
 }
 

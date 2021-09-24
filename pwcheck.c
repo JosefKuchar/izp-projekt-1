@@ -5,10 +5,27 @@
 
 // Define password hard limits
 #define MAX_PASSWORD_LENGTH 102 // 100 chars + 1 newline + 1 terminator
-#define MAX_PASSWORD_COUNT  43 // 42 Passwords + 1 for EOF
 
 // Define unused param macro to achieve same arguments across all rules
 #define UNUSED(x) (void)(x)
+
+// Struct for keeping track of password stats
+struct stats {
+    int min_length;
+    bool used_chars[256];
+    int total_length;
+    int password_count;
+};
+
+// Struct for argument definitions
+struct argument {
+    char *key; // Argument key, for example "-l"
+    bool has_value; // Flag that states if argument has value
+    int value; // Resulting argument value
+    int min_val; // Min argument value (including)
+    int max_val; // Max argument value (including)
+    char *error_msg; // Error message when argument is invalid
+};
 
 // Check rule 1.
 bool meets_rule_one(char *password, int x) {
@@ -236,13 +253,13 @@ int get_different_char_count(bool *used_chars) {
 
 // Convert string to int with error handling
 bool string_to_int(char *string, int *num) {
-    char *pEnd;
-    long number = strtol(string, &pEnd, 10);
+    char *end;
+    long number = strtol(string, &end, 10);
 
     /* Check if string starts with number (sign)
      * Also check if it ends with number
      */
-    if (pEnd == string || *pEnd != '\0') {
+    if (end == string || *end != '\0') {
         return false;
     }
 
@@ -282,12 +299,25 @@ bool str_cmp(char *s1, char *s2) {
     }
 }
 
-// Read all passwords from STDIN and put in into supplied array
-bool read_passwords(char passwords[][MAX_PASSWORD_LENGTH],
-                    int *password_count) {
-    for (int i = 0; i < MAX_PASSWORD_COUNT; i++) {
+// Update global password stats
+void update_stats(char *password, struct stats *stats) {
+    populate_used_chars(password, stats->used_chars);
+    int password_length = get_password_length(password);
+    if (password_length < stats->min_length) {
+        stats->min_length = password_length;
+    }
+    stats->total_length += password_length;
+    stats->password_count++;
+}
+
+// Process passwords from stdin and print them to stdout
+bool process_passwords(int level, int x, struct stats *stats) {
+    // Read passwords from stdin until EOF
+    for (int i = 1;; i++) {
+        char password[MAX_PASSWORD_LENGTH];
+
         // Get one line from stdin
-        char* ret = fgets(passwords[i], MAX_PASSWORD_LENGTH, stdin);
+        char* ret = fgets(password, MAX_PASSWORD_LENGTH, stdin);
 
         // If we hit EOF then end reading
         if (ret == NULL) {
@@ -295,82 +325,41 @@ bool read_passwords(char passwords[][MAX_PASSWORD_LENGTH],
         }
 
         // If there is no newline it means the password is too long
-        if (!is_newline_present(passwords[i])) {
-            fprintf(stderr, "Heslo cislo %d je prilis dlouhe!\n", i + 1);
+        if (!is_newline_present(password)) {
+            fprintf(stderr, "Heslo cislo %d je prilis dlouhe!\n", i);
             return false;
         }
 
-        // Update password count
-        (*password_count)++;
-    }
+        // Print password if it meets required security level
+        if (meets_security_level(password, x, level)) {
+            printf("%s", password);
+        }
 
-    // If we didn't already hit EOF it means the password list is too long
-    fprintf(stderr, "Prilis dlouhy seznam hesel!\n");
-    return false;
+        // Update password stats
+        update_stats(password, stats);
+    }
 }
 
 // Function for printing final stats
-void print_stats(char passwords[][MAX_PASSWORD_LENGTH], int password_count) {
-    // Variables for tracking totals
-    int min_password_length = INT_MAX;
-    int total_length = 0;
-    bool used_chars[256] = { false }; // 256 for all ASCII codes
-
-    // Iterate through all passwords
-    for (int i = 0; i < password_count; i++) {
-        // For average length
-        int password_length = get_password_length(passwords[i]);
-        total_length += password_length;
-
-        // Update min password length
-        if (password_length < min_password_length) {
-            min_password_length = password_length;
-        }
-
-        // For counting unique chars
-        populate_used_chars(passwords[i], used_chars);
+void print_stats(struct stats *stats) {
+    // First fix stats if 0 passwords were supplied
+    if (stats->password_count == 0) {
+        stats->password_count = 1; // So we don't divide by 0
+        stats->min_length = 0;
     }
 
-    // Fix stats when there are 0 passwords
-    if (password_count == 0) {
-        // Set password count to 1 to fix division by 0
-        password_count = 1;
-        // Set min password length to 0 from INT_MAX
-        min_password_length = 0;
-    }
-
-    // Calculate other final stats
-    int unique_chars = get_different_char_count(used_chars);
-    double average_length = (double) total_length / (double) password_count;
+    // Calculate final stats from stats struct
+    int unique_chars = get_different_char_count(stats->used_chars);
+    double total_length = (double) stats->total_length;
+    double password_count = (double) stats->password_count;
+    double average_length = total_length / password_count;
 
     // Finally print everything
     printf("Statistika:\n");
     printf("Ruznych znaku: %d\n", unique_chars);
-    printf("Minimalni delka: %d\n", min_password_length);
-    printf("Prumerna delka: %.2f\n", average_length);
+    printf("Minimalni delka: %d\n", stats->min_length);
+    printf("Prumerna delka: %.1f\n", average_length);
 }
-
-// Function to print valid passwords
-void print_valid_passwords(char passwords[][MAX_PASSWORD_LENGTH],
-                           int password_count,
-                           int level,
-                           int x) {
-    // Iterate through all passwords
-    for (int i = 0; i < password_count; i++) {
-        if (meets_security_level(passwords[i], x, level)) {
-            printf("%s", passwords[i]);
-        }
-    }
-}
-
-struct argument {
-    char *key; // Argument key, for example "-l"
-    bool has_value; // Flag that states if argument has value
-    int value; // Resulting argument value
-    int min_val; // Min argument value (including)
-    int max_val; // Max argument value (including)
-    char *error_msg; // Error message when argument is invalid
-};
 
 // Function to parse arguments from command line
 // TODO combine bonus with standard solution
@@ -441,7 +430,7 @@ int main(int argc, char *argv[]) {
             "-p", // Key
             true, // Has value
             1, // Default value
-            0, // Min value
+            1, // Min value
             INT_MAX, // Max value
             "Argument PARAM musi byt nezaporne cele cislo!\n" }, // Error msg
         // Stats argument
@@ -454,6 +443,13 @@ int main(int argc, char *argv[]) {
             "" // Error msg
         }
     };
+    // Initialize stats struct
+    struct stats stats = {
+        INT_MAX, // Min length
+        {false},  // Used chars
+        0, // Total length
+        0 // Password count
+    };
 
     // Parse arguments and error check
     if (!parse_arguments(argc, argv, arguments)) {
@@ -464,21 +460,14 @@ int main(int argc, char *argv[]) {
     int level = arguments[0].value;
     int x = arguments[1].value;
 
-    // Create buffer for all passwords
-    char passwords[MAX_PASSWORD_COUNT][MAX_PASSWORD_LENGTH];
-    int password_count = 0;
-
-    // Read passwords from STDIN
-    if (!read_passwords(passwords, &password_count)) {
+    // Read passwords from STDIN and print the valid ones
+    if (!process_passwords(level, x, &stats)) {
         return EXIT_FAILURE;
     }
 
-    // Finally print all valid passwords
-    print_valid_passwords(passwords, password_count, level, x);
-
     // Print stats if relevant argument was supplied
     if (arguments[2].value) {
-        print_stats(passwords, password_count);
+        print_stats(&stats);
     }
 
     return EXIT_SUCCESS;

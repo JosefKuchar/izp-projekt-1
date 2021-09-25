@@ -228,11 +228,11 @@ int get_password_length(char *password) {
 void populate_used_chars(char *password, bool *used_chars) {
     // Iterate through all characters
     for (int i = 0; password[i] != '\0'; i++) {
-        // Populate array, including newline character
-        used_chars[(int) password[i]] = true;
+        // Populate array, exluding newline character
+        if (password[i] != '\n') {
+            used_chars[(int) password[i]] = true;
+        }
     }
-    // Account for 0 (terminator) character
-    used_chars[0] = true;
 }
 
 // Count different (unique) characters inside used chars array

@@ -369,6 +369,7 @@ bool parse_arguments_classic(int argc, char *argv[], struct argument args[]) {
         return false;
     }
 
+    // Iterate through all supplied arguments except first one (program name)
     for (int i = 1; i < argc; i++) {
         struct argument *a = &args[i - 1];
 
@@ -441,7 +442,7 @@ bool parse_arguments(int argc, char *argv[], struct argument arguments[]) {
             if (i == 1) {
                 return parse_arguments_classic(argc, argv, arguments);
             } else {
-                fprintf(stderr, "Neplatny argument %s\n", argv[i]);
+                fprintf(stderr, "Neplatny prepinac %s\n", argv[i]);
                 return false;
             }
         }

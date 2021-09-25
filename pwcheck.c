@@ -364,7 +364,7 @@ void print_stats(struct stats *stats) {
 // Parser for original assignment
 bool parse_arguments_classic(int argc, char *argv[], struct argument args[]) {
     // Check number of arguments
-    if (argc < 3 && argc > 4) {
+    if (argc < 3 || argc > 4) {
         fprintf(stderr, "Neplatny pocet argumentu!\n");
         return false;
     }

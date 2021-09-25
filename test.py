@@ -14,9 +14,9 @@ for test_case in test_cases:
     output = os.popen(test_case[0]).read()
 
     if output == test_case[1]:
-        print('OK')
+        print('[ OK ] {}'.format(test_case[0]))
     else:
-        print('FAIL')
+        print('[FAIL] {}'.format(test_case[0]))
         print('Expected:')
         print(test_case[1])
         print('Got:')

@@ -10,22 +10,22 @@
 #define UNUSED(x) (void)(x)
 
 // Struct for keeping track of password stats
-typedef struct {
+struct stats {
     int min_length;
     bool used_chars[256];
     int total_length;
     int password_count;
-} stats_s;
+};
 
 // Struct for argument definitions
-typedef struct {
+struct argument {
     char *key; // Argument key, for example "-l"
     bool has_value; // Flag that states if argument has value
     int value; // Resulting argument value
     int min_val; // Min argument value (including)
     int max_val; // Max argument value (including)
     char *error_msg; // Error message when argument is invalid
-} argument_s;
+};
 
 // Check rule 1.
 bool meets_rule_one(char *password, int x) {
@@ -300,7 +300,7 @@ bool str_cmp(char *s1, char *s2) {
 }
 
 // Update global password stats
-void update_stats(char *password, stats_s *stats) {
+void update_stats(char *password, struct stats *stats) {
     populate_used_chars(password, stats->used_chars);
     int password_length = get_password_length(password);
     if (password_length < stats->min_length) {
@@ -311,7 +311,7 @@ void update_stats(char *password, stats_s *stats) {
 }
 
 // Process passwords from stdin and print them to stdout
-bool process_passwords(int level, int x, stats_s *stats) {
+bool process_passwords(int level, int x, struct stats *stats) {
     // Read passwords from stdin until EOF
     for (int i = 1;; i++) {
         char password[MAX_PASSWORD_LENGTH];
@@ -341,7 +341,7 @@ bool process_passwords(int level, int x, stats_s *stats) {
 }
 
 // Function for printing final stats
-void print_stats(stats_s *stats) {
+void print_stats(struct stats *stats) {
     // First fix stats if 0 passwords were supplied
     if (stats->password_count == 0) {
         stats->password_count = 1; // So we don't divide by 0
@@ -362,7 +362,7 @@ void print_stats(stats_s *stats) {
 }
 
 // Parser for original assignment
-bool parse_arguments_classic(int argc, char *argv[], argument_s args[]) {
+bool parse_arguments_classic(int argc, char *argv[], struct argument args[]) {
     // Check number of arguments
     if (argc < 3 || argc > 4) {
         fprintf(stderr, "Neplatny pocet argumentu!\n");
@@ -371,7 +371,7 @@ bool parse_arguments_classic(int argc, char *argv[], argument_s args[]) {
 
     // Iterate through all supplied arguments except first one (program name)
     for (int i = 1; i < argc; i++) {
-        argument_s *a = &args[i - 1];
+        struct argument *a = &args[i - 1];
 
         // Level and param arguments
         if (a->has_value) {
@@ -396,14 +396,14 @@ bool parse_arguments_classic(int argc, char *argv[], argument_s args[]) {
 }
 
 // Function to parse arguments from command line
-bool parse_arguments(int argc, char *argv[], argument_s arguments[]) {
+bool parse_arguments(int argc, char *argv[], struct argument arguments[]) {
     // Iterate through all supplied arguments except the program name
     for (int i = 1; i < argc; i++) {
         bool key_found = false;
 
         // Iterate through all defined arguments
         for (int j = 0; j < 3; j++) {
-            argument_s *a = &arguments[j];
+            struct argument *a = &arguments[j];
             if (str_cmp(a->key, argv[i])) {
                 // If argument has value then parse it
                 if (a->has_value) {
@@ -454,7 +454,7 @@ bool parse_arguments(int argc, char *argv[], argument_s arguments[]) {
 // Entry
 int main(int argc, char *argv[]) {
     // Define all arguments
-    argument_s arguments[] = {
+    struct argument arguments[] = {
         // LEVEL argument
         {
             "-l", // Key
@@ -482,7 +482,7 @@ int main(int argc, char *argv[]) {
         }
     };
     // Initialize stats struct
-    stats_s stats = {
+    struct stats stats = {
         INT_MAX, // Min length
         {false},  // Used chars
         0, // Total length

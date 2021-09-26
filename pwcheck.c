@@ -16,10 +16,10 @@
 
 // Struct for keeping track of password stats
 struct stats {
-    int min_length;
-    bool used_chars[256];
-    int total_length;
-    int password_count;
+    int min_length; // Minimum password length
+    bool used_chars[256]; // Array of used characters
+    int total_length; // Total length of all passwords
+    int password_count; // Number of passwords
 };
 
 // Struct for argument definitions
@@ -160,6 +160,7 @@ bool meets_rule_four(char *password, int x) {
                     password[i + k] != password[j + k])
                 {
                     matching_substrings = false;
+                    break;
                 }
             }
 
@@ -466,7 +467,7 @@ bool parse_arguments(int argc, char *argv[], struct argument arguments[]) {
 // Entry
 int main(int argc, char *argv[]) {
     // Define all arguments
-    struct argument arguments[3] = {
+    struct argument arguments[] = {
         // LEVEL argument
         {
             "-l", // Key

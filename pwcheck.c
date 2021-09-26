@@ -9,7 +9,7 @@
 #include <stdlib.h>
 
 // Define password hard limits
-#define MAX_PASSWORD_LENGTH 102 // 100 chars + 1 newline + 1 terminator
+#define MAX_PASSWORD_LENGTH 103 // 100 chars + 2 newline (CRLF) + 1 terminator
 
 // Define unused param macro to achieve same arguments across all rules
 #define UNUSED(x) (void)(x)
@@ -81,13 +81,13 @@ bool meets_rule_one(char *password, int x) {
 
 // Check rule 2.
 bool meets_rule_two(char *password, int x) {
+    int check_pass_count = 0;
+
     // Create array of all checks
     typedef bool (*f)(char);
     f checks[] = { is_lower_case, is_upper_case, is_digit, is_special_char };
     // Array of all check results
     bool check_results[4] = { false };
-    // Variable to track check pass count
-    int check_pass_count = 0;
 
     // Iterate through the whole string
     for (int i = 0; password[i] != '\0'; i++) {
@@ -194,39 +194,29 @@ int meets_security_level(char *password, int x, int level) {
     return true;
 }
 
-// Find if password isn't longer than max length
-bool is_password_length_ok(char *string) {
+// Find password length - without newline character
+int get_password_length(char *password) {
     int i = 0;
 
     // Iterate through all characters
-    while (string[i] != '\0') {
+    while (password[i] != '\0') {
         // If we find newline we don't have to search anymore
-        if (string[i] == '\n') {
-            return true;
+        if (password[i] == '\n' || password[i] == '\r') {
+            return i;
         }
         i++;
     }
 
-    /* If we didn't find newline it doesn't necessarily mean that the password
-     * overflowed, but it can also mean that were are at the end of file
-     * We just have to check if the loop didn't reach the end of buffer
-     * where would \n normally be
+    /* If we didn't find newline just return length of the whole string
+     * without terminating character
      */
-    return i != MAX_PASSWORD_LENGTH - 1;
+    return i;
 }
 
-// Find password length - without newline character
-int get_password_length(char *password) {
-    // Iterate through all characters
-    for (int i = 0; password[i] != '\0'; i++) {
-        // If we find newline we can return password length
-        if (password[i] == '\n') {
-            return i;
-        }
-    }
-
-    // In case we didn't find newline character return -1 as error
-    return -1;
+// Find if password isn't longer than max length
+bool is_password_length_ok(char *password) {
+    // -2 is to account for newline characters
+    return get_password_length(password) != MAX_PASSWORD_LENGTH - 2;
 }
 
 /* Prepare used chars array for counting
@@ -236,7 +226,7 @@ void populate_used_chars(char *password, bool *used_chars) {
     // Iterate through all characters
     for (int i = 0; password[i] != '\0'; i++) {
         // Populate array, exluding newline character
-        if (password[i] != '\n') {
+        if (password[i] != '\n' && password[i] != '\r') {
             used_chars[(int) password[i]] = true;
         }
     }

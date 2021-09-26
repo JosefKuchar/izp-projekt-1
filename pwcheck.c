@@ -32,85 +32,79 @@ struct argument {
     char *error_msg; // Error message when argument is invalid
 };
 
+// Find if character is lower case letter
+bool is_lower_case(char c) {
+    return c >= 'a' && c <= 'z';
+}
+
+// Find if character is upper case letter
+bool is_upper_case(char c) {
+    return c >= 'A' && c <= 'Z';
+}
+
+// Find if character is digit
+bool is_digit(char c) {
+    return c >= '0' && c <= '9';
+}
+
+// Find if character is a special character
+bool is_special_char(char c) {
+    return !(is_lower_case(c) || is_upper_case(c) || is_digit(c)) &&
+            c >= 33 && c <= 126;
+}
+
 // Check rule 1.
 bool meets_rule_one(char *password, int x) {
     UNUSED(x);
 
-    bool small_char_present = false;
-    bool big_char_present = false;
+    bool lower_case_letter_present = false;
+    bool upper_case_letter_present = false;
 
     // Iterate through the whole string
     for (int i = 0; password[i] != '\0'; i++) {
         // Check if char is lower case letter
-        if (!small_char_present && password[i] >= 'a' && password[i] <= 'z') {
-            small_char_present = true;
+        if (!lower_case_letter_present && is_lower_case(password[i])) {
+            lower_case_letter_present = true;
             continue;
         }
 
         // Check if char is upper case letter
-        if (!big_char_present && password[i] >= 'A' && password[i] <= 'Z') {
-            big_char_present = true;
+        if (!upper_case_letter_present && is_upper_case(password[i])) {
+            upper_case_letter_present = true;
             continue;
         }
     }
 
-    // If both types of letters is found rule is met
-    return small_char_present && big_char_present;
+    // If both types of letters are found rule is met
+    return lower_case_letter_present && upper_case_letter_present;
 }
 
 // Check rule 2.
 bool meets_rule_two(char *password, int x) {
-    int rule_pass_count = 0;
-
-    bool small_char_present = false;
-    bool big_char_present = false;
-    bool number_present = false;
-    bool special_char_present = false;
+    // Create array of all checks
+    typedef bool (*f)(char);
+    f checks[] = { is_lower_case, is_upper_case, is_digit, is_special_char };
+    // Array of all check results
+    bool check_results[4] = { false };
+    // Variable to track check pass count
+    int check_pass_count = 0;
 
     // Iterate through the whole string
     for (int i = 0; password[i] != '\0'; i++) {
-        char c = password[i];
-
-        // Check if char is lower case letter
-        if (!small_char_present && c >= 'a' && c <= 'z') {
-            small_char_present = true;
-            rule_pass_count++;
-            continue;
-        }
-
-        // Check if char is upper case letter
-        if (!big_char_present && c >= 'A' && c <= 'Z') {
-            big_char_present = true;
-            rule_pass_count++;
-            continue;
-        }
-
-        // Check if char is number
-        if (!number_present && c >= '0' && c <= '9') {
-            number_present = true;
-            rule_pass_count++;
-            continue;
-        }
-
-        // Check if char is special character
-        if (!special_char_present &&
-            // Check if character isn't alphanumeric
-            !(
-                (c >= 'A' && c <= 'Z') ||
-                (c >= 'a' && c <= 'z') ||
-                (c >= '0' && c <= '9')
-            ) &&
-            // Check if character is in special char bounds
-            c >= 33 && c <= 126)
-        {
-            special_char_present = true;
-            rule_pass_count++;
-            continue;
+        // Iterate through all checks
+        for (int j = 0; j < 4; j++) {
+            // Check if check wasn't already passed and if check is true
+            if (!check_results[j] && checks[j](password[i])) {
+                check_results[j] = true;
+                check_pass_count++;
+                // We don't have to search for more checks
+                break;
+            }
         }
     }
 
     // If number of met rules is bigger or equal than x rule is met
-    return rule_pass_count >= x;
+    return check_pass_count >= x;
 }
 
 // Check rule 3.
@@ -125,7 +119,7 @@ bool meets_rule_three(char *password, int x) {
             current_seq_len++;
 
             /* If current seq length is already
-             * bigger then x we can stop searching
+             * bigger or equeal than x we can stop searching
              */
             if (current_seq_len >= x) {
                 return false;

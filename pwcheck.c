@@ -1,3 +1,8 @@
+/* IZP: Projekt 1 - Práce s textem
+ * Josef Kuchař - xkucha28
+ * 2021
+ */
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <limits.h>

@@ -199,18 +199,25 @@ int meets_security_level(char *password, int x, int level) {
     return true;
 }
 
-// Find if newline is present in string to detect overflow
-bool is_newline_present(char *string) {
+// Find if password isn't longer than max length
+bool is_password_length_ok(char *string) {
+    int i = 0;
+
     // Iterate through all characters
-    for (int i = 0; string[i] != '\0'; i++) {
+    while (string[i] != '\0') {
         // If we find newline we don't have to search anymore
         if (string[i] == '\n') {
             return true;
         }
+        i++;
     }
 
-    // If we didn't find newline it isn't there
-    return false;
+    /* If we didn't find newline it doesn't necessarily mean that the password
+     * overflowed, but it can also mean that were are at the end of file
+     * We just have to check if the loop didn't reach the end of buffer
+     * where would \n normally be
+     */
+    return i != MAX_PASSWORD_LENGTH - 1;
 }
 
 // Find password length - without newline character
@@ -329,8 +336,8 @@ bool process_passwords(int level, int x, struct stats *stats) {
             return true;
         }
 
-        // If there is no newline it means the password is too long
-        if (!is_newline_present(password)) {
+        // Check if password lenght is OK (defined by MAX_PASSWORD_LENGTH)
+        if (!is_password_length_ok(password)) {
             fprintf(stderr, "Heslo cislo %d je prilis dlouhe!\n", i);
             return false;
         }
@@ -459,7 +466,7 @@ bool parse_arguments(int argc, char *argv[], struct argument arguments[]) {
 // Entry
 int main(int argc, char *argv[]) {
     // Define all arguments
-    struct argument arguments[] = {
+    struct argument arguments[3] = {
         // LEVEL argument
         {
             "-l", // Key

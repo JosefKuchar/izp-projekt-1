@@ -53,3 +53,4 @@ dkms.conf
 passwd-check
 pwcheck
 debug.log
+.vscode/

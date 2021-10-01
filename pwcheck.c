@@ -9,7 +9,8 @@
 #include <stdlib.h>
 
 // Define password hard limits
-#define MAX_PASSWORD_LENGTH 103 // 100 chars + 2 newline (CRLF) + 1 terminator
+#define MAX_PASSWORD_LENGTH 100
+#define PASSWORD_BUFFER_LENGTH MAX_PASSWORD_LENGTH + 3 // 2 (\r)\n, 1 \0
 
 // Define unused param macro to achieve same arguments across all rules
 #define UNUSED(x) (void)(x)
@@ -201,7 +202,7 @@ int get_password_length(char *password) {
     // Iterate through all characters
     while (password[i] != '\0') {
         // If we find newline we don't have to search anymore
-        if (password[i] == '\n' || password[i] == '\r') {
+        if (password[i] == '\n' || (password[i] == '\r' && password[i + 1] == '\n')) {
             return i;
         }
         i++;
@@ -215,8 +216,7 @@ int get_password_length(char *password) {
 
 // Find if password isn't longer than max length
 bool is_password_length_ok(char *password) {
-    // -2 is to account for newline characters
-    return get_password_length(password) != MAX_PASSWORD_LENGTH - 2;
+    return get_password_length(password) <= 100;
 }
 
 /* Prepare used chars array for counting
@@ -311,10 +311,10 @@ void update_stats(char *password, struct stats *stats) {
 bool process_passwords(int level, int x, struct stats *stats) {
     // Read passwords from stdin until EOF
     for (int i = 1;; i++) {
-        char password[MAX_PASSWORD_LENGTH];
+        char password[PASSWORD_BUFFER_LENGTH];
 
         // Get one line from stdin
-        char* ret = fgets(password, MAX_PASSWORD_LENGTH, stdin);
+        char* ret = fgets(password, PASSWORD_BUFFER_LENGTH, stdin);
 
         // If we hit EOF then end reading
         if (ret == NULL) {

@@ -1,26 +1,129 @@
 #!/usr/bin/python3
-import os
+from subprocess import run, PIPE
+import sys
+import argparse
 
-test_cases = [
-    # Original test cases
-    ('cat hesla.txt', '1234567890\nPassword\nHeslo123\nMojevelmidlouhehesloscislem0\nIZP2021:fit@vut.cz\n'),
-    ('./pwcheck 1 1 <hesla.txt', 'Password\nHeslo123\nMojevelmidlouhehesloscislem0\nIZP2021:fit@vut.cz\n'),
-    ('./pwcheck 2 3 <hesla.txt', 'Heslo123\nMojevelmidlouhehesloscislem0\nIZP2021:fit@vut.cz\n'),
-    ('./pwcheck 3 2 <hesla.txt', 'Heslo123\nMojevelmidlouhehesloscislem0\nIZP2021:fit@vut.cz\n'),
-    ('./pwcheck 4 2 <hesla.txt', 'Heslo123\nIZP2021:fit@vut.cz\n'),
-    ('./pwcheck 2 4 --stats <hesla.txt', 'IZP2021:fit@vut.cz\nStatistika:\nRuznych znaku: 36\nMinimalni delka: 8\nPrumerna delka: 14.4\n'),
-    # Additional test cases
-    ('echo | ./pwcheck 1 1 --stats', 'Statistika:\nRuznych znaku: 0\nMinimalni delka: 0\nPrumerna delka: 0.0\n')
-]
+class Tester:
+    def __init__(self, program_name):
+        self.program_name = './' + program_name
+        self.test_count = 0
+        self.pass_count = 0
 
-for test_case in test_cases:
-    output = os.popen(test_case[0]).read()
+    def test(self, test_name, args, input, output='', intentional_error=False):
+        self.test_count += 1
+        error = False
+        p = None
 
-    if output == test_case[1]:
-        print('[ OK ] {}'.format(test_case[0]))
-    else:
-        print('[FAIL] {}'.format(test_case[0]))
-        print('Expected:')
-        print(test_case[1])
-        print('Got:')
-        print(output)
+        try:
+            p = run([self.program_name] + args, stdout=PIPE, stderr=PIPE,
+                    input=input, encoding='ascii')
+        except:
+            print('Chyba pri volani programu!')
+            sys.exit()
+
+        if p.returncode != 0:
+            if not intentional_error:
+                error = True
+                print('Program vratil chybovy navratovy kod ({}) prestoze nemel!'.format(p.returncode))
+        else:
+            if intentional_error:
+                error = True
+                print('Program vratil uspesne dokonceni (kod 0) prestoze nemel!')
+
+        if output != p.stdout:
+            error = True
+            print('Vystup programu s neshoduje s predpokladanym vystupem!')
+
+        if error:
+            print('[FAIL]', test_name)
+            print('Argumenty: ', ' '.join(args))
+            print("Predpokladany vystup:")
+            print(output)
+            print("STDOUT:")
+            print(p.stdout)
+            print("STDERR:")
+            print(p.stderr)
+        else:
+            self.pass_count += 1
+            print('[ OK ]', test_name)
+
+    def print_stats(self):
+        print('Uspesnost: {}/{} ({}%)'.format(self.pass_count, self.test_count, (self.pass_count / self.test_count) * 100))
+        pass
+
+HESLA_TXT = '1234567890\nPassword\nHeslo123\nMojevelmidlouhehesloscislem0\nIZP2021:fit@vut.cz\n'
+HESLA_TXT_CRLF = '1234567890\r\nPassword\r\nHeslo123\r\nMojevelmidlouhehesloscislem0\r\nIZP2021:fit@vut.cz\r\n'
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Tester 1. IZP projektu')
+    parser.add_argument('prog', metavar='P', type=str, help='Jmeno programu (napriklad: pwcheck)')
+    parser.add_argument('--bonus', dest='bonus', action='store_true', help='Kontrola bonusoveho parsovani argumentu')
+    parser.add_argument('--crlf', dest='crlf', action='store_true', help='Kontrola podpory CRLF vstupu')
+    args = parser.parse_args()
+
+    t1 = Tester(args.prog)
+    t2 = Tester(args.prog)
+    t3 = Tester(args.prog)
+
+    # Testy ze zadani
+    t1.test('Test ze zadani #1', ['1', '1'], HESLA_TXT, 'Password\nHeslo123\nMojevelmidlouhehesloscislem0\nIZP2021:fit@vut.cz\n')
+    t1.test('Test ze zadani #2', ['2', '3'], HESLA_TXT, 'Heslo123\nMojevelmidlouhehesloscislem0\nIZP2021:fit@vut.cz\n')
+    t1.test('Test ze zadani #3', ['3', '2'], HESLA_TXT, 'Heslo123\nMojevelmidlouhehesloscislem0\nIZP2021:fit@vut.cz\n'),
+    t1.test('Test ze zadani #4', ['4', '2'], HESLA_TXT, 'Heslo123\nIZP2021:fit@vut.cz\n'),
+    t1.test('Test ze zadann #5', ['2', '4', '--stats'], HESLA_TXT, 'IZP2021:fit@vut.cz\nStatistika:\nRuznych znaku: 36\nMinimalni delka: 8\nPrumerna delka: 14.4\n')
+    # Pocet argumentu
+    t1.test('Nedostatecny pocet argumentu', ['1'], HESLA_TXT, intentional_error=True)
+    t1.test('Prilis mnoho argumentu', ['1', '1', '--stats', '1'], HESLA_TXT, intentional_error=True)
+    # Parsovani cisel v argumentech
+    t1.test('Ciselne argumenty maji pismena na konci', ['1a', '1a'], HESLA_TXT, intentional_error=True)
+    t1.test('Cislene argumenty maji pismena na zacatku', ['a1', 'a1'], HESLA_TXT, intentional_error=True)
+    t1.test('Cislene argumenty maji pismena uprostred', ['0a1', '0a1'], HESLA_TXT, intentional_error=True)
+    # Testovani rozsahu prvniho argumentu
+    t1.test('Prvni argument mimo rozsah #1: 0', ['0', '1'], HESLA_TXT, intentional_error=True)
+    t1.test('Prvni argument mimo rozsah #2: 5', ['5', '1'], HESLA_TXT, intentional_error=True)
+    t1.test('Prvni argument mimo rozsah #3: 2000000000', ['2000000000', '1'], HESLA_TXT, intentional_error=True)
+    t1.test('Prvni argument mimo rozsah #4: vetsi nez LONG_MAX', ['10223372036854775807', '1'], HESLA_TXT, intentional_error=True)
+    t1.test('Prvni argument mimo rozsah #5: -2000000000', ['-2000000000', '1'], HESLA_TXT, intentional_error=True)
+    t1.test('Prvni argument mimo rozsah #6: mensi nez LONG_MIN', ['-10223372036854775807', '1'], HESLA_TXT, intentional_error=True)
+    # Testovani rozsahu druheho argumentu
+    t1.test('Druhy argument mimo rozsah #1: 0', ['1', '0'], HESLA_TXT, intentional_error=True)
+    t1.test('Druhy argument mimo rozsah #2: -2000000000', ['1', '-2000000000'], HESLA_TXT, intentional_error=True)
+    t1.test('Druhy argument mimo rozsah #3: mensi nez LONG_MIN', ['1', '-10223372036854775807'], HESLA_TXT, intentional_error=True)
+    t1.test('Druhy argument velky: vetsi nez LONG_MAX', ['2', '10223372036854775807'], HESLA_TXT, '')
+    # Testovani parsovani tretiho argumentu
+    t1.test('Treti argument (--stats) neplatny #1: --haha', ['1', '1', '--haha'], HESLA_TXT, intentional_error=True)
+    t1.test('Treti argument (--stats) neplatny #2: --statshaha', ['1', '1', '--statshaha'], HESLA_TXT, intentional_error=True)
+    t1.test('Treti argument (--stats) neplatny #3: stats', ['1', '1', '--statshaha'], HESLA_TXT, intentional_error=True)
+    # Testovani ruznych moznosti vstupu
+    t1.test('Maximalni delka hesla', ['1', '1', '--stats'], 'A' * 100 +'\n', 'Statistika:\nRuznych znaku: 1\nMinimalni delka: 100\nPrumerna delka: 100.0\n')
+    t1.test('Heslo prilis dlouhe #1: 101', ['1', '1'], 'A' * 101 + '\n', intentional_error=True)
+    t1.test('Heslo prilis dlouhe #2: 10000', ['1', '1'], 'A' * 10000 + '\n', intentional_error=True)
+    t1.test('Zadna hesla', ['1', '1', '--stats'], '\n', 'Statistika:\nRuznych znaku: 0\nMinimalni delka: 0\nPrumerna delka: 0.0\n')
+    t1.test('Velky pocet hesel: 10000', ['1', '1', '--stats'], 'A\n' * 10000, 'Statistika:\nRuznych znaku: 1\nMinimalni delka: 1\nPrumerna delka: 1.0\n')
+
+    if (args.bonus):
+        # Bonusove reseni
+        t2.test('BONUS | Bez argumentu', [], HESLA_TXT, 'Password\nHeslo123\nMojevelmidlouhehesloscislem0\nIZP2021:fit@vut.cz\n')
+        t2.test('BONUS | Validni argumenty #1', ['-l', '2', '-p', '4', '--stats'], HESLA_TXT, 'IZP2021:fit@vut.cz\nStatistika:\nRuznych znaku: 36\nMinimalni delka: 8\nPrumerna delka: 14.4\n')
+        t2.test('BONUS | Validni argumenty #2', ['--stats', '-p', '4', '-l', '2'], HESLA_TXT, 'IZP2021:fit@vut.cz\nStatistika:\nRuznych znaku: 36\nMinimalni delka: 8\nPrumerna delka: 14.4\n')
+        t2.test('BONUS | Neexistujici prepinac', ['-i'], HESLA_TXT, intentional_error=True)
+        t2.test('BONUS | Neexistujici hodnota po prepinaci', ['-p'], HESLA_TXT, intentional_error=True)
+        t2.test('BONUS | Prepinac za prepinacem', ['-p', '-l'], HESLA_TXT, intentional_error=True)
+
+    if (args.crlf):
+        # CRLF podpora
+        t3.test('CRLF | Test ze zadani ale CRLF #1', ['1', '1'], HESLA_TXT_CRLF, 'Password\nHeslo123\nMojevelmidlouhehesloscislem0\nIZP2021:fit@vut.cz\n')
+        t3.test('CRLF | Test ze zadani ale CRLF #2', ['2', '4', '--stats'], HESLA_TXT_CRLF, 'IZP2021:fit@vut.cz\nStatistika:\nRuznych znaku: 36\nMinimalni delka: 8\nPrumerna delka: 14.4\n')
+        t3.test('CRLF | Vstup bez noveho radku na konci', ['1', '1', '--stats'], 'Aaaa\r\nAAAa', 'Aaaa\nAAAa\nStatistika:\nRuznych znaku: 2\nMinimalni delka: 4\nPrumerna delka: 4.0\n')
+
+    print('-- STATISTIKA --')
+    print('Zakladni reseni:')
+    t1.print_stats()
+
+    if (args.bonus):
+        print('Bonusove reseni')
+        t2.print_stats()
+
+    if (args.crlf):
+        print('CRLF podpora')
+        t3.print_stats()

@@ -1,4 +1,10 @@
 #!/usr/bin/python3
+#
+# Testy na 1. IZP projekt 2021
+# Vytvoril Josef Kuchar (xkucha28) - josefkuchar.com
+# Priklad pouziti: ./test.py pwcheck
+# Help se vypise pres argument -h
+
 from subprocess import run, PIPE
 import sys
 import argparse
@@ -12,6 +18,7 @@ class Tester:
     def test(self, test_name, args, input, output='', intentional_error=False):
         self.test_count += 1
         error = False
+        msg = ""
         p = None
 
         try:
@@ -24,18 +31,23 @@ class Tester:
         if p.returncode != 0:
             if not intentional_error:
                 error = True
-                print('Program vratil chybovy navratovy kod ({}) prestoze nemel!'.format(p.returncode))
+                msg += 'Program vratil chybovy navratovy kod ({}) prestoze nemel!\n'.format(p.returncode)
         else:
             if intentional_error:
                 error = True
-                print('Program vratil uspesne dokonceni (kod 0) prestoze nemel!')
+                msg += 'Program vratil uspesne dokonceni (kod 0) prestoze nemel!\n'
 
-        if output != p.stdout:
+        if output.rstrip() != p.stdout.rstrip():
             error = True
-            print('Vystup programu s neshoduje s predpokladanym vystupem!')
+            msg += 'Vystup programu s neshoduje s predpokladanym vystupem!\n'
+
+        if intentional_error and p.stderr == '':
+            error = True
+            msg = 'Program nevratil na STDERR zadnou chybovou zpravu!\n'
 
         if error:
             print('[FAIL]', test_name)
+            print(msg)
             print('Argumenty: ', ' '.join(args))
             print("Predpokladany vystup:")
             print(output)
@@ -70,7 +82,33 @@ if __name__ == '__main__':
     t1.test('Test ze zadani #2', ['2', '3'], HESLA_TXT, 'Heslo123\nMojevelmidlouhehesloscislem0\nIZP2021:fit@vut.cz\n')
     t1.test('Test ze zadani #3', ['3', '2'], HESLA_TXT, 'Heslo123\nMojevelmidlouhehesloscislem0\nIZP2021:fit@vut.cz\n'),
     t1.test('Test ze zadani #4', ['4', '2'], HESLA_TXT, 'Heslo123\nIZP2021:fit@vut.cz\n'),
-    t1.test('Test ze zadann #5', ['2', '4', '--stats'], HESLA_TXT, 'IZP2021:fit@vut.cz\nStatistika:\nRuznych znaku: 36\nMinimalni delka: 8\nPrumerna delka: 14.4\n')
+    t1.test('Test ze zadani #5', ['2', '4', '--stats'], HESLA_TXT, 'IZP2021:fit@vut.cz\nStatistika:\nRuznych znaku: 36\nMinimalni delka: 8\nPrumerna delka: 14.4\n')
+    # Vlastni testy pravidel
+    t1.test('Test na LEVEL 1 #1', ['1', '1'], 'Aa\n', 'Aa\n')
+    t1.test('Test na LEVEL 1 #2', ['1', '1'], 'Zz\n', 'Zz\n')
+    t1.test('Test na LEVEL 1 #3', ['1', '1'], 'aaa\n', '')
+    t1.test('Test na LEVEL 1 #4', ['1', '1'], 'A0\n', '')
+    t1.test('Test na LEVEL 2 #1', ['2', '1'], 'aaaaa\n', '')
+    t1.test('Test na LEVEL 2 #2', ['2', '2'], 'Aa\n', 'Aa\n')
+    t1.test('Test na LEVEL 2 #3', ['2', '2'], 'Zz\n', 'Zz\n')
+    t1.test('Test na LEVEL 2 #4', ['2', '4'], '%aZ0\n', '%aZ0\n')
+    t1.test('Test na LEVEL 2 #5', ['2', '5'], '%aZ0\n', '')
+    t1.test('Test na LEVEL 2 #6', ['2', '4'], 'aZ0\n', '')
+    t1.test('Test na LEVEL 2 #7', ['2', '3'], 'aZ0\n', 'aZ0\n')
+    t1.test('Test na LEVEL 3 #1', ['3', '1'], 'Aa\n', '')
+    t1.test('Test na LEVEL 3 #2', ['3', '2'], 'Aa\n', 'Aa\n')
+    t1.test('Test na LEVEL 3 #3', ['3', '2'], 'AAa\n', '')
+    t1.test('Test na LEVEL 3 #4', ['3', '4'], 'Az0!!!\n', 'Az0!!!\n')
+    t1.test('Test na LEVEL 3 #5', ['3', '4'], 'Az0!!!!\n', '')
+    t1.test('Test na LEVEL 4 #1', ['4', '1'], 'Aa\n', '')
+    t1.test('Test na LEVEL 4 #2', ['4', '2'], 'Aaha\n', 'Aaha\n')
+    t1.test('Test na LEVEL 4 #3', ['4', '2'], 'Abhaha\n', '')
+    t1.test('Test na LEVEL 4 #4', ['4', '3'], '0Abhaha\n', '0Abhaha\n')
+    t1.test('Test na LEVEL 4 #5', ['4', '3'], '0Abx0Abx\n', '')
+    t1.test('Test na LEVEL 4 #6', ['4', '3'], '0Ahahah\n', '')
+    t1.test('Test na LEVEL 4 #7', ['4', '4'], '%aZ0x%aZ\n', '%aZ0x%aZ\n')
+    t1.test('Test na LEVEL 4 #8', ['4', '4'], '%aZ0x%aZ0\n', '')
+    t1.test('Test na LEVEL 4 #9', ['4', '4'], '%aZ0hahaha\n', '')
     # Pocet argumentu
     t1.test('Nedostatecny pocet argumentu', ['1'], HESLA_TXT, intentional_error=True)
     t1.test('Prilis mnoho argumentu', ['1', '1', '--stats', '1'], HESLA_TXT, intentional_error=True)
@@ -106,7 +144,7 @@ if __name__ == '__main__':
         t2.test('BONUS | Bez argumentu', [], HESLA_TXT, 'Password\nHeslo123\nMojevelmidlouhehesloscislem0\nIZP2021:fit@vut.cz\n')
         t2.test('BONUS | Validni argumenty #1', ['-l', '2', '-p', '4', '--stats'], HESLA_TXT, 'IZP2021:fit@vut.cz\nStatistika:\nRuznych znaku: 36\nMinimalni delka: 8\nPrumerna delka: 14.4\n')
         t2.test('BONUS | Validni argumenty #2', ['--stats', '-p', '4', '-l', '2'], HESLA_TXT, 'IZP2021:fit@vut.cz\nStatistika:\nRuznych znaku: 36\nMinimalni delka: 8\nPrumerna delka: 14.4\n')
-        t2.test('BONUS | Neexistujici prepinac', ['-i'], HESLA_TXT, intentional_error=True)
+        t2.test('BONUS | Neexistujici prepinac', ['-l', '2', '-i', '1'], HESLA_TXT, intentional_error=True)
         t2.test('BONUS | Neexistujici hodnota po prepinaci', ['-p'], HESLA_TXT, intentional_error=True)
         t2.test('BONUS | Prepinac za prepinacem', ['-p', '-l'], HESLA_TXT, intentional_error=True)
 

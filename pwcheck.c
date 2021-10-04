@@ -134,7 +134,7 @@ bool meets_rule_three(char *password, int x) {
     }
 
     // If seq with length x wasn't found rule is met
-    return true;
+    return current_seq_len < x;
 }
 
 // Check rule 4.

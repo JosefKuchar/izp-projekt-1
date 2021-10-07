@@ -4,6 +4,7 @@
 # Vytvoril Josef Kuchar (xkucha28) - josefkuchar.com
 # Priklad pouziti: ./test.py pwcheck
 # Help se vypise pres argument -h
+# Revize: 2
 
 from subprocess import run, PIPE
 import sys
@@ -39,7 +40,7 @@ class Tester:
 
         if output.rstrip() != p.stdout.rstrip():
             error = True
-            msg += 'Vystup programu s neshoduje s predpokladanym vystupem!\n'
+            msg += 'Vystup programu se neshoduje s predpokladanym vystupem!\n'
 
         if intentional_error and p.stderr == '':
             error = True
@@ -95,6 +96,7 @@ if __name__ == '__main__':
     t1.test('Test na LEVEL 2 #5', ['2', '5'], '%aZ0\n', '')
     t1.test('Test na LEVEL 2 #6', ['2', '4'], 'aZ0\n', '')
     t1.test('Test na LEVEL 2 #7', ['2', '3'], 'aZ0\n', 'aZ0\n')
+    t1.test('Test na LEVEL 2 #8', ['2', '4'], 'Aa 0\n', 'Aa 0\n')
     t1.test('Test na LEVEL 3 #1', ['3', '1'], 'Aa\n', '')
     t1.test('Test na LEVEL 3 #2', ['3', '2'], 'Aa\n', 'Aa\n')
     t1.test('Test na LEVEL 3 #3', ['3', '2'], 'AAa\n', '')

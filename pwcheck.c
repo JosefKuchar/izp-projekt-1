@@ -51,7 +51,7 @@ bool is_digit(char c) {
 // Find if character is a special character
 bool is_special_char(char c) {
     return !(is_lower_case(c) || is_upper_case(c) || is_digit(c)) &&
-            c >= 33 && c <= 126;
+            c >= 32 && c <= 126;
 }
 
 // Check rule 1.
@@ -195,6 +195,11 @@ int meets_security_level(char *password, int x, int level) {
     return true;
 }
 
+// Find whether char on index i is a newline
+bool is_newline_sequence(char *pass, int i) {
+    return pass[i] == '\n' || (pass[i] == '\r' && pass[i + 1] == '\n');
+}
+
 // Find password length - without newline character
 int get_password_length(char *password) {
     int i = 0;
@@ -202,7 +207,7 @@ int get_password_length(char *password) {
     // Iterate through all characters
     while (password[i] != '\0') {
         // If we find newline we don't have to search anymore
-        if (password[i] == '\n' || (password[i] == '\r' && password[i + 1] == '\n')) {
+        if (is_newline_sequence(password, i)) {
             return i;
         }
         i++;

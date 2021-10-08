@@ -68,7 +68,7 @@ class Tester:
             print('[ OK ]', test_name)
 
     def print_stats(self):
-        print('Uspesnost: {}/{} ({}%)'.format(self.pass_count, self.test_count, (self.pass_count / self.test_count) * 100))
+        print('Uspesnost: {}/{} ({:.2f}%)'.format(self.pass_count, self.test_count, (self.pass_count / self.test_count) * 100))
         pass
 
 HESLA_TXT = '1234567890\nPassword\nHeslo123\nMojevelmidlouhehesloscislem0\nIZP2021:fit@vut.cz\n'

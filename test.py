@@ -4,7 +4,7 @@
 # Vytvoril Josef Kuchar (xkucha28) - josefkuchar.com
 # Priklad pouziti: ./test.py pwcheck
 # Help se vypise pres argument -h
-# Revize: 2
+# Revize: 4
 
 from subprocess import run, PIPE
 import sys
@@ -25,8 +25,15 @@ class Tester:
         try:
             p = run([self.program_name] + args, stdout=PIPE, stderr=PIPE,
                     input=input, encoding='ascii')
-        except:
+        except UnicodeDecodeError as e:
+            print('[FAIL]', test_name)
+            print('Vystup pravdepodobne obsahuje znaky mimo ASCII (diakritika?)')
+            print(e)
+            sys.exit()
+        except Exception as e:
+            print('[FAIL]', test_name)
             print('Chyba pri volani programu!')
+            print(e)
             sys.exit()
 
         if p.returncode != 0:

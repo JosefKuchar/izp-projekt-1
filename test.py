@@ -4,7 +4,7 @@
 # Vytvoril Josef Kuchar (xkucha28) - josefkuchar.com
 # Priklad pouziti: ./test.py pwcheck
 # Help se vypise pres argument -h
-# Revize: 4
+# Revize: 5
 
 from subprocess import run, PIPE
 import sys

@@ -4,11 +4,14 @@
 # Vytvoril Josef Kuchar (xkucha28) - josefkuchar.com
 # Priklad pouziti: ./test.py pwcheck
 # Help se vypise pres argument -h
-# Revize: 5
+# Revize: 6
 
 from subprocess import run, PIPE
 import sys
 import argparse
+
+OK = "\033[1;32;40m[ OK ]\033[0;37;40m"
+FAIL = "\033[1;31;40m[FAIL]\033[0;37;40m"
 
 class Tester:
     def __init__(self, program_name):
@@ -26,12 +29,12 @@ class Tester:
             p = run([self.program_name] + args, stdout=PIPE, stderr=PIPE,
                     input=input, encoding='ascii')
         except UnicodeDecodeError as e:
-            print('[FAIL]', test_name)
+            print(FAIL, test_name)
             print('Vystup pravdepodobne obsahuje znaky mimo ASCII (diakritika?)')
             print(e)
             sys.exit()
         except Exception as e:
-            print('[FAIL]', test_name)
+            print(FAIL, test_name)
             print('Chyba pri volani programu!')
             print(e)
             sys.exit()
@@ -54,7 +57,7 @@ class Tester:
             msg = 'Program nevratil na STDERR zadnou chybovou zpravu!\n'
 
         if error:
-            print('[FAIL]', test_name)
+            print(FAIL, test_name)
             print(msg)
             print('Argumenty: ', ' '.join(args))
             print("Predpokladany vystup:")
@@ -65,7 +68,7 @@ class Tester:
             print(p.stderr)
         else:
             self.pass_count += 1
-            print('[ OK ]', test_name)
+            print(OK, test_name)
 
     def print_stats(self):
         print('Uspesnost: {}/{} ({:.2f}%)'.format(self.pass_count, self.test_count, (self.pass_count / self.test_count) * 100))
@@ -79,7 +82,12 @@ if __name__ == '__main__':
     parser.add_argument('prog', metavar='P', type=str, help='Jmeno programu (napriklad: pwcheck)')
     parser.add_argument('--bonus', dest='bonus', action='store_true', help='Kontrola bonusoveho parsovani argumentu')
     parser.add_argument('--crlf', dest='crlf', action='store_true', help='Kontrola podpory CRLF vstupu')
+    parser.add_argument('--no-color', dest='color', action='store_false', help='Vystup bez barev')
     args = parser.parse_args()
+
+    if not args.color:
+        OK = '[ OK ]'
+        FAIL = '[FAIL]'
 
     t1 = Tester(args.prog)
     t2 = Tester(args.prog)
@@ -148,7 +156,7 @@ if __name__ == '__main__':
     t1.test('Zadna hesla', ['1', '1', '--stats'], '\n', 'Statistika:\nRuznych znaku: 0\nMinimalni delka: 0\nPrumerna delka: 0.0\n')
     t1.test('Velky pocet hesel: 10000', ['1', '1', '--stats'], 'A\n' * 10000, 'Statistika:\nRuznych znaku: 1\nMinimalni delka: 1\nPrumerna delka: 1.0\n')
 
-    if (args.bonus):
+    if args.bonus:
         # Bonusove reseni
         t2.test('BONUS | Bez argumentu', [], HESLA_TXT, 'Password\nHeslo123\nMojevelmidlouhehesloscislem0\nIZP2021:fit@vut.cz\n')
         t2.test('BONUS | Validni argumenty #1', ['-l', '2', '-p', '4', '--stats'], HESLA_TXT, 'IZP2021:fit@vut.cz\nStatistika:\nRuznych znaku: 36\nMinimalni delka: 8\nPrumerna delka: 14.4\n')
@@ -157,7 +165,7 @@ if __name__ == '__main__':
         t2.test('BONUS | Neexistujici hodnota po prepinaci', ['-p'], HESLA_TXT, intentional_error=True)
         t2.test('BONUS | Prepinac za prepinacem', ['-p', '-l'], HESLA_TXT, intentional_error=True)
 
-    if (args.crlf):
+    if args.crlf:
         # CRLF podpora
         t3.test('CRLF | Test ze zadani ale CRLF #1', ['1', '1'], HESLA_TXT_CRLF, 'Password\nHeslo123\nMojevelmidlouhehesloscislem0\nIZP2021:fit@vut.cz\n')
         t3.test('CRLF | Test ze zadani ale CRLF #2', ['2', '4', '--stats'], HESLA_TXT_CRLF, 'IZP2021:fit@vut.cz\nStatistika:\nRuznych znaku: 36\nMinimalni delka: 8\nPrumerna delka: 14.4\n')
@@ -167,10 +175,10 @@ if __name__ == '__main__':
     print('Zakladni reseni:')
     t1.print_stats()
 
-    if (args.bonus):
+    if args.bonus:
         print('Bonusove reseni')
         t2.print_stats()
 
-    if (args.crlf):
+    if args.crlf:
         print('CRLF podpora')
         t3.print_stats()

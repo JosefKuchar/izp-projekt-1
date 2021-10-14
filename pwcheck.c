@@ -1,5 +1,6 @@
-/* IZP: Projekt 1 - Práce s textem
- * Josef Kuchař - xkucha28
+/**
+ * @name IZP Projekt 1 - Práce s textem
+ * @author Josef Kuchař - xkucha28
  * 2021
  */
 
@@ -8,14 +9,18 @@
 #include <limits.h>
 #include <stdlib.h>
 
-// Define password hard limits
+/**
+ * Define password hard limits
+ */
 #define MAX_PASSWORD_LENGTH 100
 #define PASSWORD_BUFFER_LENGTH MAX_PASSWORD_LENGTH + 3 // 2 (\r)\n, 1 \0
 
 // Define unused param macro to achieve same arguments across all rules
 #define UNUSED(x) (void)(x)
 
-// Struct for keeping track of password stats
+/**
+ * Struct for keeping track of password stats
+ */
 struct stats {
     int min_length; // Minimum password length
     bool used_chars[256]; // Array of used characters
@@ -23,7 +28,9 @@ struct stats {
     int password_count; // Number of passwords
 };
 
-// Struct for argument definitions
+/**
+ * Struct for argument definitions
+ */
 struct argument {
     char *key; // Argument key, for example "-l"
     bool has_value; // Flag that states if argument has value
@@ -33,28 +40,49 @@ struct argument {
     char *error_msg; // Error message when argument is invalid
 };
 
-// Find if character is lower case letter
+/**
+ * Find if character is lower case letter
+ * @param c character that is checked
+ * @return true if character is lower case
+ */
 bool is_lower_case(char c) {
     return c >= 'a' && c <= 'z';
 }
 
-// Find if character is upper case letter
+/**
+ * Find if character is upper case letter
+ * @param c character that is checked
+ * @return true if character is upper case
+ */
 bool is_upper_case(char c) {
     return c >= 'A' && c <= 'Z';
 }
 
-// Find if character is digit
+/**
+ * Find if character is digit
+ * @param c character that is checked
+ * @return true if character is digit
+ */
 bool is_digit(char c) {
     return c >= '0' && c <= '9';
 }
 
-// Find if character is a special character
+/**
+ * Find if character is a special character
+ * @param c character that is checked
+ * @return true if character is special character
+ */
 bool is_special_char(char c) {
     return !(is_lower_case(c) || is_upper_case(c) || is_digit(c)) &&
             c >= 32 && c <= 126;
 }
 
-// Check rule 1.
+/**
+ * Check rule 1.
+ * @param password Password string to check
+ * @param x PARAM input argument
+ * @return true if password meets rule one
+ */
 bool meets_rule_one(char *password, int x) {
     UNUSED(x);
 
@@ -80,7 +108,12 @@ bool meets_rule_one(char *password, int x) {
     return lower_case_letter_present && upper_case_letter_present;
 }
 
-// Check rule 2.
+/**
+ * Check rule 2.
+ * @param password Password string to check
+ * @param x PARAM input argument
+ * @return true if password meets rule two
+ */
 bool meets_rule_two(char *password, int x) {
     int check_pass_count = 0;
 
@@ -108,7 +141,12 @@ bool meets_rule_two(char *password, int x) {
     return check_pass_count >= x;
 }
 
-// Check rule 3.
+/**
+ * Check rule 3.
+ * @param password Password string to check
+ * @param x PARAM input argument
+ * @return true if password meets rule three
+ */
 bool meets_rule_three(char *password, int x) {
     char last_char = '\0';
     int current_seq_len = 1;
@@ -137,7 +175,12 @@ bool meets_rule_three(char *password, int x) {
     return current_seq_len < x;
 }
 
-// Check rule 4.
+/**
+ * Check rule 4.
+ * @param password Password string to check
+ * @param x PARAM input argument
+ * @return true if password meets rule four
+ */
 bool meets_rule_four(char *password, int x) {
     // Iterate through the whole string
     for (int i = 0; password[i] != '\0'; i++) {
@@ -170,8 +213,14 @@ bool meets_rule_four(char *password, int x) {
     return true;
 }
 
-// Check if password meets required security level
-int meets_security_level(char *password, int x, int level) {
+/**
+ * Check if password meets required security level
+ * @param password Password string to check
+ * @param x PARAM input argument
+ * @param level LEVEL input argument
+ * @return true if password meets desired security level
+ */
+bool meets_security_level(char *password, int x, int level) {
     // Create array of all rules
     typedef bool (*f)(char*, int);
     f rules[] = {
@@ -195,12 +244,21 @@ int meets_security_level(char *password, int x, int level) {
     return true;
 }
 
-// Find whether char on index i is a newline
+/**
+ * Find whether char on index i is a newline
+ * @param pass String to check
+ * @param i Index in string to check
+ * @return true if character on index i is newline sequence
+ */
 bool is_newline_sequence(char *pass, int i) {
     return pass[i] == '\n' || (pass[i] == '\r' && pass[i + 1] == '\n');
 }
 
-// Find password length - without newline character
+/**
+ * Find password length - without newline character
+ * @param password Password string
+ * @return length of the password without newline character
+ */
 int get_password_length(char *password) {
     int i = 0;
 
@@ -224,8 +282,10 @@ bool is_password_length_ok(char *password) {
     return get_password_length(password) <= 100;
 }
 
-/* Prepare used chars array for counting
- * It modifies used_chars array
+/**
+ * Prepare used chars array for counting It modifies used_chars array
+ * @param password Password string
+ * @param used_chars Array of 256 bools for keeping track of used chars
  */
 void populate_used_chars(char *password, bool *used_chars) {
     // Iterate through all characters
@@ -237,8 +297,12 @@ void populate_used_chars(char *password, bool *used_chars) {
     }
 }
 
-// Count different (unique) characters inside used chars array
-int get_different_char_count(bool *used_chars) {
+/**
+ * Count different (unique) characters inside used chars array
+ * @param used_chars Array of 256 bools for keeping track of used chars
+ * @return Unique character count
+ */
+int get_different_char_count(bool used_chars[256]) {
     int count = 0;
 
     /* Iterate through all ASCII character
@@ -253,7 +317,12 @@ int get_different_char_count(bool *used_chars) {
     return count;
 }
 
-// Convert string to int with error handling
+/**
+ * Convert string to int with error handling
+ * @param string String argument
+ * @param num Result
+ * @return True if everything went ok
+ */
 bool string_to_int(char *string, int *num) {
     char *end;
     long number = strtol(string, &end, 10);
@@ -279,7 +348,12 @@ bool string_to_int(char *string, int *num) {
     return true;
 }
 
-// String compare function
+/**
+ * String compare function - strcmp alternative
+ * @param s1 First string
+ * @param s2 Second string
+ * @return True if strings are equal
+ */
 bool str_cmp(char *s1, char *s2) {
     // Iterate through all characters
     for (int i = 0;; i++) {
@@ -301,7 +375,11 @@ bool str_cmp(char *s1, char *s2) {
     }
 }
 
-// Update global password stats
+/**
+ * Update global password stats
+ * @param password Password used to update stats
+ * @param stats Stats struct
+ */
 void update_stats(char *password, struct stats *stats) {
     populate_used_chars(password, stats->used_chars);
     int password_length = get_password_length(password);
@@ -312,7 +390,13 @@ void update_stats(char *password, struct stats *stats) {
     stats->password_count++;
 }
 
-// Process passwords from stdin and print them to stdout
+/**
+ * Process passwords from stdin and print them to stdout
+ * @param level LEVEL input argument
+ * @param x PARAM input argument
+ * @param stats Stats struct
+ * @return True if everything went well
+ */
 bool process_passwords(int level, int x, struct stats *stats) {
     // Read passwords from stdin until EOF
     for (int i = 1;; i++) {
@@ -342,7 +426,10 @@ bool process_passwords(int level, int x, struct stats *stats) {
     }
 }
 
-// Function for printing final stats
+/**
+ * Function for printing final stats
+ * @param stats Stats struct
+ */
 void print_stats(struct stats *stats) {
     // First fix stats if 0 passwords were supplied
     if (stats->password_count == 0) {
@@ -363,7 +450,13 @@ void print_stats(struct stats *stats) {
     printf("Prumerna delka: %.1f\n", average_length);
 }
 
-// Parser for original assignment
+/**
+ * Parser for original assignment
+ * @param argc Number of arguments
+ * @param argv Program arguments
+ * @param args Args struct with argument definitions
+ * @return True if everything went well
+ */
 bool parse_arguments_classic(int argc, char *argv[], struct argument args[]) {
     // Check number of arguments
     if (argc < 3 || argc > 4) {
@@ -397,7 +490,13 @@ bool parse_arguments_classic(int argc, char *argv[], struct argument args[]) {
     return true;
 }
 
-// Function to parse arguments from command line
+/**
+ * Function to parse arguments from command line
+ * @param argc Number of arguments
+ * @param argv Program arguments
+ * @param arguments Args struct with argument definitions
+ * @return True if everything went well
+ */
 bool parse_arguments(int argc, char *argv[], struct argument arguments[]) {
     // Iterate through all supplied arguments except the program name
     for (int i = 1; i < argc; i++) {
@@ -453,7 +552,6 @@ bool parse_arguments(int argc, char *argv[], struct argument arguments[]) {
     return true;
 }
 
-// Entry
 int main(int argc, char *argv[]) {
     // Define all arguments
     struct argument arguments[] = {

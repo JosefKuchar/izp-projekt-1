@@ -117,6 +117,11 @@ bool meets_rule_one(char *password, int x) {
 bool meets_rule_two(char *password, int x) {
     int check_pass_count = 0;
 
+    // If param > 4 then only require 4 groups
+    if (x > 4) {
+        x = 4;
+    }
+
     // Create array of all checks
     typedef bool (*f)(char);
     f checks[] = { is_lower_case, is_upper_case, is_digit, is_special_char };

@@ -4,7 +4,7 @@
 # Vytvoril Josef Kuchar (xkucha28) - josefkuchar.com
 # Priklad pouziti: ./test.py pwcheck
 # Help se vypise pres argument -h
-# Revize: 7
+# Revize: 8
 
 from subprocess import run, PIPE
 import sys
@@ -153,7 +153,7 @@ if __name__ == '__main__':
     # Testovani parsovani tretiho argumentu
     t1.test('Treti argument (--stats) neplatny #1: --haha', ['1', '1', '--haha'], HESLA_TXT, intentional_error=True)
     t1.test('Treti argument (--stats) neplatny #2: --statshaha', ['1', '1', '--statshaha'], HESLA_TXT, intentional_error=True)
-    t1.test('Treti argument (--stats) neplatny #3: stats', ['1', '1', '--statshaha'], HESLA_TXT, intentional_error=True)
+    t1.test('Treti argument (--stats) neplatny #3: stats', ['1', '1', 'stats'], HESLA_TXT, intentional_error=True)
     # Testovani ruznych moznosti vstupu
     t1.test('Maximalni delka hesla', ['1', '1', '--stats'], 'A' * 100 +'\n', 'Statistika:\nRuznych znaku: 1\nMinimalni delka: 100\nPrumerna delka: 100.0\n')
     t1.test('Heslo prilis dlouhe #1: 101', ['1', '1'], 'A' * 101 + '\n', intentional_error=True)

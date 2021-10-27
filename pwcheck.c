@@ -4,10 +4,10 @@
  * 2021
  */
 
-#include <stdio.h>
-#include <stdbool.h>
-#include <limits.h>
-#include <stdlib.h>
+#include <stdio.h> // IO functions
+#include <stdbool.h> // Bool type
+#include <limits.h> // Min and max values of variable types
+#include <stdlib.h> // EXIT macros
 
 /**
  * Define password hard limits
@@ -74,7 +74,7 @@ bool is_digit(char c) {
  */
 bool is_special_char(char c) {
     return !(is_lower_case(c) || is_upper_case(c) || is_digit(c)) &&
-            c >= 32 && c <= 126;
+            c >= 32 && c <= 126; // Bounds defined in assigment
 }
 
 /**
@@ -250,16 +250,6 @@ bool meets_security_level(char *password, int x, int level) {
 }
 
 /**
- * Find whether char on index i is a newline
- * @param pass String to check
- * @param i Index in string to check
- * @return true if character on index i is newline sequence
- */
-bool is_newline_sequence(char *pass, int i) {
-    return pass[i] == '\n' || (pass[i] == '\r' && pass[i + 1] == '\n');
-}
-
-/**
  * Find password length - without newline character
  * @param password Password string
  * @return length of the password without newline character
@@ -270,7 +260,7 @@ int get_password_length(char *password) {
     // Iterate through all characters
     while (password[i] != '\0') {
         // If we find newline we don't have to search anymore
-        if (is_newline_sequence(password, i)) {
+        if (password[i] == '\n') {
             return i;
         }
         i++;
@@ -296,7 +286,7 @@ void populate_used_chars(char *password, bool *used_chars) {
     // Iterate through all characters
     for (int i = 0; password[i] != '\0'; i++) {
         // Populate array, exluding newline character
-        if (password[i] != '\n' && password[i] != '\r') {
+        if (password[i] != '\n') {
             used_chars[(int) password[i]] = true;
         }
     }
@@ -500,16 +490,17 @@ bool parse_arguments_classic(int argc, char *argv[], struct argument args[]) {
  * @param argc Number of arguments
  * @param argv Program arguments
  * @param arguments Args struct with argument definitions
+ * @param ac Number of defined arguments
  * @return True if everything went well
  */
-bool parse_arguments(int argc, char *argv[], struct argument arguments[]) {
+bool parse_arguments(int argc, char *argv[], struct argument args[], int ac) {
     // Iterate through all supplied arguments except the program name
     for (int i = 1; i < argc; i++) {
         bool key_found = false;
 
         // Iterate through all defined arguments
-        for (int j = 0; j < 3; j++) {
-            struct argument *a = &arguments[j];
+        for (int j = 0; j < ac; j++) {
+            struct argument *a = &args[j];
             if (str_cmp(a->key, argv[i])) {
                 // If argument has value then parse it
                 if (a->has_value) {
@@ -546,7 +537,7 @@ bool parse_arguments(int argc, char *argv[], struct argument arguments[]) {
              * then fallback to original argument parser
              */
             if (i == 1) {
-                return parse_arguments_classic(argc, argv, arguments);
+                return parse_arguments_classic(argc, argv, args);
             } else {
                 fprintf(stderr, "Neplatny prepinac %s\n", argv[i]);
                 return false;
@@ -562,40 +553,32 @@ int main(int argc, char *argv[]) {
     struct argument arguments[] = {
         // LEVEL argument
         {
-            "-l", // Key
-            true, // Has value
-            1, // Default value
-            1, // Min value
-            4, // Max value
-            "Argument LEVEL musi byt cele cislo mezi 1 a 4!\n" }, // Error msg
+            .key = "-l", .has_value = true,
+            .value = 1, .min_val = 1, .max_val = 4,
+            .error_msg = "Argument LEVEL musi byt cele cislo mezi 1 a 4!\n" },
         // PARAM argument
         {
-            "-p", // Key
-            true, // Has value
-            1, // Default value
-            1, // Min value
-            INT_MAX, // Max value
-            "Argument PARAM musi byt nezaporne cele cislo!\n" }, // Error msg
+            .key = "-p", .has_value = true,
+            .value = 1, .min_val = 1, .max_val = INT_MAX,
+            .error_msg = "Argument PARAM musi byt nezaporne cele cislo!\n" },
         // Stats argument
         {
-            "--stats", // Key
-            false, // Has value
-            0, // Default value
-            0, // Min value
-            0, // Max value
-            "" // Error msg
+            .key = "--stats", .has_value = false,
+            .value = 0, .min_val = 0, .max_val = 0,
+            .error_msg = ""
         }
     };
-    // Initialize stats struct
+
+    // Initialize stats
     struct stats stats = {
-        INT_MAX, // Min length
-        {false},  // Used chars
-        0, // Total length
-        0 // Password count
+        .min_length = INT_MAX,
+        .used_chars = {false},
+        .total_length = 0,
+        .password_count = 0
     };
 
     // Parse arguments and error check
-    if (!parse_arguments(argc, argv, arguments)) {
+    if (!parse_arguments(argc, argv, arguments, 3)) {
         return EXIT_FAILURE;
     }
 

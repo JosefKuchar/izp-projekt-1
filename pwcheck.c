@@ -1,5 +1,5 @@
 /**
- * @name IZP Projekt 1 - Práce s textem
+ * @name IZP Projekt 1 - Prace s textem
  * @author Josef Kuchař - xkucha28
  * 2021
  */

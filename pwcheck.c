@@ -1,6 +1,6 @@
 /**
- * @name IZP Projekt 1 - Práce s textem
- * @author Josef Kuchař - xkucha28
+ * @name IZP Projekt 1 - Prace s textem
+ * @author Josef Kuchar - xkucha28
  * 2021
  */
 
